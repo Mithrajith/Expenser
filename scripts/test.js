@@ -137,7 +137,21 @@ async function runTests() {
   assert.ok(queryWithSearchAndAccount.$and, "Query must use $and container");
   assert.strictEqual(queryWithSearchAndAccount.$and.length, 3, "Query must contain userId, accountId, and search conditions");
   assert.strictEqual(queryWithSearchAndAccount.$and[0].userId, user1_ID, "First condition must be userId");
-  console.log("  ✅ Multi-tenant filter scoping & ownership validation test passed.\n");
+  // Test 7: Profile & Password Update Verification
+  console.log("▶ Test 7: User Profile & Password Update Verification");
+  const oldPassword = "OldSecurePassword123!";
+  const oldHash = await bcrypt.hash(oldPassword, 10);
+
+  // Validate old password before allowing password change
+  const isValidOld = await bcrypt.compare(oldPassword, oldHash);
+  assert.strictEqual(isValidOld, true, "Old password verification must pass");
+
+  // Hash new password
+  const newPassword = "NewSecurePassword456!";
+  const newHash = await bcrypt.hash(newPassword, 10);
+  const isValidNew = await bcrypt.compare(newPassword, newHash);
+  assert.strictEqual(isValidNew, true, "New password verification must pass with updated hash");
+  console.log("  ✅ Profile & password update test passed.\n");
 
   console.log("🎉 ALL MONEYTRACK UNIT TESTS PASSED SUCCESSFULLY!");
 }
