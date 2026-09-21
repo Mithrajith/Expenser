@@ -10,7 +10,7 @@ const SESSION_COOKIE_NAME = "moneytrack_session";
 
 const publicPaths = ["/login", "/register", "/api/auth/login", "/api/auth/register"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Static assets and manifest bypass
