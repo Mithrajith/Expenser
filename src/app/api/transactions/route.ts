@@ -80,42 +80,54 @@ export async function GET(req: Request) {
     }
   }
 
-  // Filter query
+  // Filter query built using $and array to avoid $or collisions and guarantee userId scoping
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const query: Filter<any> = { userId: userObjectId };
+  const andConditions: Filter<any>[] = [{ userId: userObjectId }];
 
   if (type && ["EXPENSE", "INCOME", "TRANSFER"].includes(type)) {
-    query.type = type;
+    andConditions.push({ type });
   }
 
-  if (accountId) {
-    query.$or = [{ accountId: new ObjectId(accountId) }, { toAccountId: new ObjectId(accountId) }];
+  if (accountId && ObjectId.isValid(accountId)) {
+    const accObjId = new ObjectId(accountId);
+    andConditions.push({
+      $or: [{ accountId: accObjId }, { toAccountId: accObjId }],
+    });
   }
 
-  if (categoryId) {
-    query.categoryId = new ObjectId(categoryId);
+  if (categoryId && ObjectId.isValid(categoryId)) {
+    andConditions.push({ categoryId: new ObjectId(categoryId) });
   }
 
   if (startDate || endDate) {
-    query.transactionDate = {};
-    if (startDate) query.transactionDate.$gte = startDate;
-    if (endDate) query.transactionDate.$lte = endDate;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dateCond: Record<string, any> = {};
+    if (startDate) dateCond.$gte = startDate;
+    if (endDate) dateCond.$lte = endDate;
+    andConditions.push({ transactionDate: dateCond });
   }
 
   if (minAmount || maxAmount) {
-    query.amount = {};
-    if (minAmount) query.amount.$gte = parseFloat(minAmount);
-    if (maxAmount) query.amount.$lte = parseFloat(maxAmount);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const amountCond: Record<string, any> = {};
+    if (minAmount) amountCond.$gte = parseFloat(minAmount);
+    if (maxAmount) amountCond.$lte = parseFloat(maxAmount);
+    andConditions.push({ amount: amountCond });
   }
 
   if (search && search.trim().length > 0) {
     const searchRegex = new RegExp(search.trim(), "i");
-    query.$or = [
-      { title: { $regex: searchRegex } },
-      { description: { $regex: searchRegex } },
-      { subcategoryId: { $regex: searchRegex } },
-    ];
+    andConditions.push({
+      $or: [
+        { title: { $regex: searchRegex } },
+        { description: { $regex: searchRegex } },
+        { subcategoryId: { $regex: searchRegex } },
+      ],
+    });
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const query: Filter<any> = andConditions.length > 1 ? { $and: andConditions } : andConditions[0];
 
   const total = await db.collection("transactions").countDocuments(query);
 
@@ -129,24 +141,57 @@ export async function GET(req: Request) {
       {
         $lookup: {
           from: "accounts",
-          localField: "accountId",
-          foreignField: "_id",
+          let: { accId: "$accountId" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$_id", "$$accId"] },
+                    { $eq: ["$userId", userObjectId] },
+                  ],
+                },
+              },
+            },
+          ],
           as: "account",
         },
       },
       {
         $lookup: {
           from: "accounts",
-          localField: "toAccountId",
-          foreignField: "_id",
+          let: { toAccId: "$toAccountId" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$_id", "$$toAccId"] },
+                    { $eq: ["$userId", userObjectId] },
+                  ],
+                },
+              },
+            },
+          ],
           as: "toAccount",
         },
       },
       {
         $lookup: {
           from: "categories",
-          localField: "categoryId",
-          foreignField: "_id",
+          let: { catId: "$categoryId" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$_id", "$$catId"] },
+                    { $eq: ["$userId", userObjectId] },
+                  ],
+                },
+              },
+            },
+          ],
           as: "category",
         },
       },
@@ -208,14 +253,50 @@ export async function POST(req: Request) {
     const userObjectId = new ObjectId(session.id);
     const data = parsed.data;
 
+    // Validate account ownership
+    if (!ObjectId.isValid(data.accountId)) {
+      return NextResponse.json({ error: "Invalid account ID" }, { status: 400 });
+    }
+    const accountObjId = new ObjectId(data.accountId);
+    const accountExists = await db.collection("accounts").findOne({ _id: accountObjId, userId: userObjectId });
+    if (!accountExists) {
+      return NextResponse.json({ error: "Account not found or does not belong to user" }, { status: 400 });
+    }
+
+    // Validate destination account ownership if transfer
+    let toAccountObjId: ObjectId | undefined = undefined;
+    if (data.type === "TRANSFER" && data.toAccountId) {
+      if (!ObjectId.isValid(data.toAccountId)) {
+        return NextResponse.json({ error: "Invalid destination account ID" }, { status: 400 });
+      }
+      toAccountObjId = new ObjectId(data.toAccountId);
+      const toAccountExists = await db.collection("accounts").findOne({ _id: toAccountObjId, userId: userObjectId });
+      if (!toAccountExists) {
+        return NextResponse.json({ error: "Destination account not found or does not belong to user" }, { status: 400 });
+      }
+    }
+
+    // Validate category ownership if categoryId provided
+    let categoryObjId: ObjectId | undefined = undefined;
+    if (data.categoryId) {
+      if (!ObjectId.isValid(data.categoryId)) {
+        return NextResponse.json({ error: "Invalid category ID" }, { status: 400 });
+      }
+      categoryObjId = new ObjectId(data.categoryId);
+      const categoryExists = await db.collection("categories").findOne({ _id: categoryObjId, userId: userObjectId });
+      if (!categoryExists) {
+        return NextResponse.json({ error: "Category not found or does not belong to user" }, { status: 400 });
+      }
+    }
+
     const newTransaction = {
       userId: userObjectId,
       type: data.type,
       amount: data.amount,
       currency: data.currency || "INR",
-      accountId: new ObjectId(data.accountId),
-      toAccountId: data.toAccountId ? new ObjectId(data.toAccountId) : undefined,
-      categoryId: data.categoryId ? new ObjectId(data.categoryId) : undefined,
+      accountId: accountObjId,
+      toAccountId: toAccountObjId,
+      categoryId: categoryObjId,
       subcategoryId: data.subcategoryId || "",
       title: data.title,
       description: data.description || "",

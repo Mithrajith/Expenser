@@ -98,7 +98,49 @@ async function runTests() {
   assert.strictEqual(duplicateCount, 1);
   console.log("  ✅ SheetJS Excel generator & duplicate detection test passed.\n");
 
+  // Test 6: Multi-Tenant Filter Scoping & Account Ownership Validation
+  console.log("▶ Test 6: Multi-Tenant Filter Scoping & Ownership Validation");
+  const user1_ID = "usr_001";
+  const user2_ID = "usr_002";
+  const user1_Account = "acc_001";
+  const user2_Account = "acc_002";
+
+  // Simulate account ownership store
+  const accountsStore = [
+    { _id: user1_Account, userId: user1_ID, name: "User1 Bank" },
+    { _id: user2_Account, userId: user2_ID, name: "User2 Bank" },
+  ];
+
+  // Ownership validator function
+  function validateAccountOwnership(userId, accountId) {
+    return accountsStore.some((acc) => acc._id === accountId && acc.userId === userId);
+  }
+
+  assert.strictEqual(validateAccountOwnership(user1_ID, user1_Account), true, "User1 must own User1 Account");
+  assert.strictEqual(validateAccountOwnership(user1_ID, user2_Account), false, "User1 must NOT own User2 Account");
+
+  // Query filter composition test (combining userId, accountId filter, and search)
+  function buildQueryFilter(userId, accountId, search) {
+    const andConditions = [{ userId }];
+    if (accountId) {
+      andConditions.push({ $or: [{ accountId }, { toAccountId: accountId }] });
+    }
+    if (search) {
+      andConditions.push({
+        $or: [{ title: { $regex: search } }, { description: { $regex: search } }],
+      });
+    }
+    return andConditions.length > 1 ? { $and: andConditions } : andConditions[0];
+  }
+
+  const queryWithSearchAndAccount = buildQueryFilter(user1_ID, user1_Account, "Coffee");
+  assert.ok(queryWithSearchAndAccount.$and, "Query must use $and container");
+  assert.strictEqual(queryWithSearchAndAccount.$and.length, 3, "Query must contain userId, accountId, and search conditions");
+  assert.strictEqual(queryWithSearchAndAccount.$and[0].userId, user1_ID, "First condition must be userId");
+  console.log("  ✅ Multi-tenant filter scoping & ownership validation test passed.\n");
+
   console.log("🎉 ALL MONEYTRACK UNIT TESTS PASSED SUCCESSFULLY!");
 }
 
 runTests();
+

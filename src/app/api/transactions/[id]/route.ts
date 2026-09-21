@@ -55,13 +55,50 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const oldToAccountId = existingTx.toAccountId?.toString();
 
     const data = parsed.data;
+
+    // Validate account ownership
+    if (!ObjectId.isValid(data.accountId)) {
+      return NextResponse.json({ error: "Invalid account ID" }, { status: 400 });
+    }
+    const newAccountObjId = new ObjectId(data.accountId);
+    const accountExists = await db.collection("accounts").findOne({ _id: newAccountObjId, userId: userObjectId });
+    if (!accountExists) {
+      return NextResponse.json({ error: "Account not found or does not belong to user" }, { status: 400 });
+    }
+
+    // Validate destination account ownership if transfer
+    let newToAccountObjId: ObjectId | undefined = undefined;
+    if (data.type === "TRANSFER" && data.toAccountId) {
+      if (!ObjectId.isValid(data.toAccountId)) {
+        return NextResponse.json({ error: "Invalid destination account ID" }, { status: 400 });
+      }
+      newToAccountObjId = new ObjectId(data.toAccountId);
+      const toAccountExists = await db.collection("accounts").findOne({ _id: newToAccountObjId, userId: userObjectId });
+      if (!toAccountExists) {
+        return NextResponse.json({ error: "Destination account not found or does not belong to user" }, { status: 400 });
+      }
+    }
+
+    // Validate category ownership if categoryId provided
+    let newCategoryObjId: ObjectId | undefined = undefined;
+    if (data.categoryId) {
+      if (!ObjectId.isValid(data.categoryId)) {
+        return NextResponse.json({ error: "Invalid category ID" }, { status: 400 });
+      }
+      newCategoryObjId = new ObjectId(data.categoryId);
+      const categoryExists = await db.collection("categories").findOne({ _id: newCategoryObjId, userId: userObjectId });
+      if (!categoryExists) {
+        return NextResponse.json({ error: "Category not found or does not belong to user" }, { status: 400 });
+      }
+    }
+
     const updatedFields = {
       type: data.type,
       amount: data.amount,
       currency: data.currency || "INR",
-      accountId: new ObjectId(data.accountId),
-      toAccountId: data.toAccountId ? new ObjectId(data.toAccountId) : undefined,
-      categoryId: data.categoryId ? new ObjectId(data.categoryId) : undefined,
+      accountId: newAccountObjId,
+      toAccountId: newToAccountObjId,
+      categoryId: newCategoryObjId,
       subcategoryId: data.subcategoryId || "",
       title: data.title,
       description: data.description || "",
