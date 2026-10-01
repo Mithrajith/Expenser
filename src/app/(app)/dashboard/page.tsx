@@ -86,14 +86,34 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-        <p className="text-sm text-gray-400">Loading your finances...</p>
+      <div className="space-y-6" aria-busy="true" aria-live="polite">
+        <div className="flex flex-col gap-3">
+          <div className="h-8 w-64 rounded-xl bg-[#1C2433] animate-pulse" />
+          <div className="h-4 w-80 rounded-xl bg-[#1C2433] animate-pulse" />
+        </div>
+
+        <div className="h-40 rounded-3xl bg-[#141A24] border border-[#263145] animate-pulse" />
+
+        <div className="grid grid-cols-3 gap-3">
+          {Array.from({ length: 3 }).map((_, idx) => (
+            <div key={idx} className="h-20 rounded-2xl bg-[#141A24] border border-[#263145] animate-pulse" />
+          ))}
+        </div>
+
+        <div className="h-72 rounded-3xl bg-[#141A24] border border-[#263145] animate-pulse" />
       </div>
     );
   }
 
   const symbol = "₹";
+
+  const buildTransactionsLink = (params: Record<string, string | undefined>) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) query.set(key, value);
+    });
+    return `/transactions${query.toString() ? `?${query.toString()}` : ""}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -107,7 +127,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Month Selector Pill */}
-        <div className="flex items-center gap-2 self-start sm:self-auto glass-pill px-4 py-2 rounded-2xl border border-[#263145]">
+        <div className="flex items-center gap-2 self-start sm:self-auto glass-pill px-4 py-2 rounded-2xl border border-[#263145]" aria-label="Current reporting month">
           <Calendar className="w-4 h-4 text-cyan-400" />
           <span className="text-sm font-semibold text-white">September 2026</span>
         </div>
@@ -159,29 +179,29 @@ export default function DashboardPage() {
 
         {/* Income / Expense / Net Cards Grid */}
         <div className="grid grid-cols-3 gap-3 pt-2 border-t border-white/10">
-          <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+          <Link href={buildTransactionsLink({ type: "INCOME" })} className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 hover:border-emerald-400/60 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D1117]">
             <p className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider">Income</p>
             <p className="text-base sm:text-lg font-bold text-white mt-0.5">
               {symbol}
               {(summary?.income || 0).toLocaleString("en-IN")}
             </p>
-          </div>
+          </Link>
 
-          <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/20">
+          <Link href={buildTransactionsLink({ type: "EXPENSE" })} className="p-3 rounded-2xl bg-red-500/10 border border-red-500/20 hover:border-red-400/60 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D1117]">
             <p className="text-[11px] font-semibold text-red-400 uppercase tracking-wider">Expense</p>
             <p className="text-base sm:text-lg font-bold text-white mt-0.5">
               {symbol}
               {(summary?.expense || 0).toLocaleString("en-IN")}
             </p>
-          </div>
+          </Link>
 
-          <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20">
+          <Link href={buildTransactionsLink({})} className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 hover:border-cyan-400/60 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D1117]">
             <p className="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider">Net</p>
             <p className="text-base sm:text-lg font-bold text-white mt-0.5">
               {symbol}
               {(summary?.net || 0).toLocaleString("en-IN")}
             </p>
-          </div>
+          </Link>
         </div>
       </div>
 
@@ -191,7 +211,7 @@ export default function DashboardPage() {
           <h3 className="text-lg font-bold text-white flex items-center gap-2">
             <span>Expense by Category</span>
           </h3>
-          <Link href="/analytics" className="text-xs font-semibold text-blue-400 hover:underline flex items-center gap-1">
+          <Link href="/analytics" className="text-xs font-semibold text-blue-400 hover:underline flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D1117]">
             <span>View All</span>
             <ChevronRight className="w-4 h-4" />
           </Link>
@@ -210,6 +230,12 @@ export default function DashboardPage() {
                     outerRadius={80}
                     paddingAngle={4}
                     dataKey="total"
+                    onClick={(entry: any) => {
+                      const categoryId = entry?.categoryId;
+                      if (categoryId) {
+                        window.location.href = buildTransactionsLink({ categoryId });
+                      }
+                    }}
                   >
                     {summary.categoryExpenses.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color || "#3B82F6"} stroke="transparent" />
@@ -281,7 +307,7 @@ export default function DashboardPage() {
                 <Link
                   key={tx.id}
                   href={`/transactions/${tx.id}`}
-                  className="flex items-center justify-between p-3.5 rounded-2xl bg-[#1C2433] border border-[#263145] hover:border-blue-500/40 transition touch-target"
+                  className="flex items-center justify-between p-3.5 rounded-2xl bg-[#1C2433] border border-[#263145] hover:border-blue-500/40 transition touch-target focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D1117]"
                 >
                   <div className="flex items-center gap-3">
                     <div
@@ -328,9 +354,9 @@ export default function DashboardPage() {
               <p className="text-base font-semibold text-gray-300">No transactions yet</p>
               <p className="text-xs text-gray-500">Add your first transaction to start tracking your money.</p>
             </div>
-            <Link
+              <Link
               href="/transactions/new"
-              className="inline-flex items-center gap-2 py-2.5 px-5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-500 transition"
+              className="inline-flex items-center gap-2 py-2.5 px-5 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-500 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D1117]"
             >
               <Plus className="w-4 h-4" />
               <span>Add Transaction</span>

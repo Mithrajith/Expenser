@@ -9,19 +9,23 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const now = new Date();
-  const monthParam = searchParams.get("month") || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const startDate = searchParams.get("startDate") || "";
+  const endDate = searchParams.get("endDate") || "";
 
   const db = await getDb();
   const userObjectId = new ObjectId(session.id);
 
-  const monthRegex = new RegExp(`^${monthParam}`);
+  const dateMatch: Record<string, string> = {};
+  if (startDate) dateMatch.$gte = startDate;
+  if (endDate) dateMatch.$lte = endDate;
+  const hasDateFilter = Object.keys(dateMatch).length > 0;
 
   // 1. Monthly totals
   const monthlyStats = await db.collection("transactions").aggregate([
     {
       $match: {
         userId: userObjectId,
-        transactionDate: { $regex: monthRegex },
+        ...(hasDateFilter ? { transactionDate: dateMatch } : {}),
       },
     },
     {
@@ -52,7 +56,7 @@ export async function GET(req: Request) {
       $match: {
         userId: userObjectId,
         type: "EXPENSE",
-        transactionDate: { $regex: monthRegex },
+        ...(hasDateFilter ? { transactionDate: dateMatch } : {}),
       },
     },
     {
@@ -70,7 +74,7 @@ export async function GET(req: Request) {
       $match: {
         userId: userObjectId,
         type: "EXPENSE",
-        transactionDate: { $regex: monthRegex },
+        ...(hasDateFilter ? { transactionDate: dateMatch } : {}),
       },
     },
     {
@@ -137,7 +141,8 @@ export async function GET(req: Request) {
   }
 
   return NextResponse.json({
-    month: monthParam,
+    startDate,
+    endDate,
     income,
     expense,
     net,

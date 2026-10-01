@@ -11,7 +11,21 @@ export async function PATCH(req: Request) {
 
   try {
     const body = await req.json();
-    const { name, email, baseCurrency, currentPassword, newPassword } = body;
+    const {
+      name,
+      email,
+      baseCurrency,
+      currentPassword,
+      newPassword,
+      analyticsStartDate,
+      analyticsEndDate,
+      transactionStartDate,
+      transactionEndDate,
+      transactionSearch,
+      transactionType,
+      transactionAccountId,
+      transactionCategoryId,
+    } = body;
 
     const db = await getDb();
     const userObjectId = new ObjectId(session.id);
@@ -57,6 +71,38 @@ export async function PATCH(req: Request) {
       updates.baseCurrency = updatedCurrency;
     }
 
+    if (typeof analyticsStartDate === "string") {
+      updates.analyticsStartDate = analyticsStartDate.trim();
+    }
+
+    if (typeof analyticsEndDate === "string") {
+      updates.analyticsEndDate = analyticsEndDate.trim();
+    }
+
+    if (typeof transactionStartDate === "string") {
+      updates.transactionStartDate = transactionStartDate.trim();
+    }
+
+    if (typeof transactionEndDate === "string") {
+      updates.transactionEndDate = transactionEndDate.trim();
+    }
+
+    if (typeof transactionSearch === "string") {
+      updates.transactionSearch = transactionSearch.trim();
+    }
+
+    if (typeof transactionType === "string") {
+      updates.transactionType = transactionType.trim();
+    }
+
+    if (typeof transactionAccountId === "string") {
+      updates.transactionAccountId = transactionAccountId.trim();
+    }
+
+    if (typeof transactionCategoryId === "string") {
+      updates.transactionCategoryId = transactionCategoryId.trim();
+    }
+
     // Update Password if currentPassword & newPassword provided
     if (currentPassword || newPassword) {
       if (!currentPassword || !newPassword) {
@@ -97,10 +143,53 @@ export async function PATCH(req: Request) {
         name: updatedName,
         email: updatedEmail,
         baseCurrency: updatedCurrency,
+        analyticsStartDate: typeof updates.analyticsStartDate === "string" ? updates.analyticsStartDate : currentUser.analyticsStartDate || "",
+        analyticsEndDate: typeof updates.analyticsEndDate === "string" ? updates.analyticsEndDate : currentUser.analyticsEndDate || "",
+        transactionStartDate: typeof updates.transactionStartDate === "string" ? updates.transactionStartDate : currentUser.transactionStartDate || "",
+        transactionEndDate: typeof updates.transactionEndDate === "string" ? updates.transactionEndDate : currentUser.transactionEndDate || "",
+        transactionSearch: typeof updates.transactionSearch === "string" ? updates.transactionSearch : currentUser.transactionSearch || "",
+        transactionType: typeof updates.transactionType === "string" ? updates.transactionType : currentUser.transactionType || "",
+        transactionAccountId: typeof updates.transactionAccountId === "string" ? updates.transactionAccountId : currentUser.transactionAccountId || "",
+        transactionCategoryId: typeof updates.transactionCategoryId === "string" ? updates.transactionCategoryId : currentUser.transactionCategoryId || "",
       },
     });
   } catch (error) {
     console.error("Update profile error:", error);
     return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
   }
+}
+
+export async function GET() {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const db = await getDb();
+  const user = await db.collection("users").findOne(
+    { _id: new ObjectId(session.id) },
+    { projection: { passwordHash: 0 } }
+  );
+
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    user: {
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      baseCurrency: user.baseCurrency || "INR",
+      analyticsStartDate: user.analyticsStartDate || "",
+      analyticsEndDate: user.analyticsEndDate || "",
+      transactionStartDate: user.transactionStartDate || "",
+      transactionEndDate: user.transactionEndDate || "",
+      transactionSearch: user.transactionSearch || "",
+      transactionType: user.transactionType || "",
+      transactionAccountId: user.transactionAccountId || "",
+      transactionCategoryId: user.transactionCategoryId || "",
+      createdAt: user.createdAt,
+    },
+  });
 }

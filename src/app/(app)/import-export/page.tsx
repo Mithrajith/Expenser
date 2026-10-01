@@ -7,13 +7,23 @@ import {
   FileText,
   Upload,
   Download,
+  FileDown,
   CheckCircle2,
   Loader2,
   AlertCircle,
 } from "lucide-react";
 
 export default function ImportExportPage() {
-  const [activeTab, setActiveTab] = useState<"excel" | "sqlite" | "csv" | "backup">("excel");
+  const [activeTab, setActiveTab] = useState<"excel" | "sqlite" | "csv" | "pdf" | "backup">("excel");
+  const [pdfStartDate, setPdfStartDate] = useState("");
+  const [pdfEndDate, setPdfEndDate] = useState("");
+
+  const buildPdfExportLink = () => {
+    const query = new URLSearchParams();
+    if (pdfStartDate) query.set("startDate", pdfStartDate);
+    if (pdfEndDate) query.set("endDate", pdfEndDate);
+    return `/api/export/pdf${query.toString() ? `?${query.toString()}` : ""}`;
+  };
 
   // Excel state
   const [excelFile, setExcelFile] = useState<File | null>(null);
@@ -172,11 +182,69 @@ export default function ImportExportPage() {
       </div>
 
       {/* Tabs */}
+      {/* Tab 3.5: PDF Export */}
+      {activeTab === "pdf" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-[#141A24] border border-[#263145] rounded-3xl p-6 space-y-4 shadow-xl flex flex-col justify-between">
+            <div>
+              <h3 className="font-bold text-white text-lg flex items-center gap-2">
+                <FileDown className="w-5 h-5 text-indigo-400" />
+                <span>Export PDF Report</span>
+              </h3>
+              <p className="text-xs text-gray-400 mt-2">
+                Download a printable transaction report in a table layout that matches the transaction screen.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] uppercase text-gray-500 font-semibold mb-1">From Date</label>
+                <input
+                  type="date"
+                  value={pdfStartDate}
+                  onChange={(e) => setPdfStartDate(e.target.value)}
+                  className="w-full p-3 rounded-xl bg-[#1C2433] border border-[#263145] text-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  aria-label="PDF export start date"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase text-gray-500 font-semibold mb-1">To Date</label>
+                <input
+                  type="date"
+                  value={pdfEndDate}
+                  onChange={(e) => setPdfEndDate(e.target.value)}
+                  className="w-full p-3 rounded-xl bg-[#1C2433] border border-[#263145] text-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  aria-label="PDF export end date"
+                />
+              </div>
+            </div>
+            <a
+              href={buildPdfExportLink()}
+              download
+              className="w-full py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm text-center shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D1117]"
+            >
+              Download PDF Report
+            </a>
+          </div>
+
+          <div className="bg-[#141A24] border border-[#263145] rounded-3xl p-6 space-y-4 shadow-xl">
+            <h3 className="font-bold text-white text-lg flex items-center gap-2">
+              <FileText className="w-5 h-5 text-gray-300" />
+              <span>What is included</span>
+            </h3>
+            <ul className="space-y-2 text-xs text-gray-300 list-disc pl-5">
+              <li>Summary of total income, expense, net, accounts, and categories.</li>
+              <li>Recent transaction list for quick review or sharing.</li>
+              <li>Date-range support through the analytics page export button.</li>
+            </ul>
+          </div>
+        </div>
+      )}
       <div className="flex items-center gap-1.5 p-1 bg-[#141A24] rounded-2xl border border-[#263145] overflow-x-auto no-scrollbar">
         {[
           { key: "excel", label: "Excel (.xlsx)", icon: FileSpreadsheet },
           { key: "sqlite", label: "SQLite (.db)", icon: Database },
           { key: "csv", label: "CSV File", icon: FileText },
+          { key: "pdf", label: "PDF Report", icon: FileDown },
           { key: "backup", label: "Full Backup", icon: Download },
         ].map((tab) => {
           const Icon = tab.icon;
@@ -190,7 +258,7 @@ export default function ImportExportPage() {
               }}
               className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-xl whitespace-nowrap transition ${
                 activeTab === tab.key ? "bg-blue-600 text-white shadow-md" : "text-gray-400 hover:text-gray-200"
-              }`}
+              } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D1117]`}
             >
               <Icon className="w-4 h-4" />
               <span>{tab.label}</span>
@@ -311,7 +379,7 @@ export default function ImportExportPage() {
                   <button
                     onClick={handleExecuteExcelImport}
                     disabled={loading}
-                    className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition"
+                    className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D1117]"
                   >
                     {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Run Excel Import"}
                   </button>
@@ -334,7 +402,7 @@ export default function ImportExportPage() {
               <a
                 href="/api/export/excel"
                 download
-                className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm text-center shadow-lg transition"
+                className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm text-center shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D1117]"
               >
                 Download Excel Workbook
               </a>
@@ -375,7 +443,7 @@ export default function ImportExportPage() {
             <a
               href="/api/export/sqlite"
               download
-              className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm text-center shadow-lg transition"
+              className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm text-center shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D1117]"
             >
               Download SQLite (.db)
             </a>
@@ -409,7 +477,7 @@ export default function ImportExportPage() {
             <a
               href="/api/export/csv"
               download
-              className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm text-center shadow-lg transition"
+              className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm text-center shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D1117]"
             >
               Download CSV
             </a>
@@ -433,7 +501,7 @@ export default function ImportExportPage() {
             <a
               href="/api/backup/export"
               download
-              className="w-full py-3.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm text-center shadow-lg transition"
+              className="w-full py-3.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm text-center shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0D1117]"
             >
               Export JSON Backup
             </a>

@@ -40,6 +40,7 @@ export default function AddTransactionPage() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     async function loadFormOptions() {
@@ -96,9 +97,9 @@ export default function AddTransactionPage() {
 
   const selectedCategoryObj = categories.find((c) => c.id === categoryId);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveTransaction = async (stayOnPage: boolean) => {
     setError("");
+    setSuccessMessage("");
 
     const numAmount = parseFloat(amount);
     if (!numAmount || numAmount <= 0) {
@@ -137,14 +138,30 @@ export default function AddTransactionPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to save transaction");
 
-      router.push("/transactions");
-      router.refresh();
+      setSuccessMessage(stayOnPage ? "Transaction saved. Ready for the next one." : "Transaction saved.");
+      setAmount("");
+      setTitle("");
+      setDescription("");
+      setSubcategoryId("");
+      setDate(new Date().toISOString().substring(0, 10));
+      const nowTime = new Date();
+      setTime(`${String(nowTime.getHours()).padStart(2, "0")}:${String(nowTime.getMinutes()).padStart(2, "0")}`);
+
+      if (!stayOnPage) {
+        router.push("/transactions");
+        router.refresh();
+      }
     } catch (err: unknown) {
       if (err instanceof Error) setError(err.message);
       else setError("An unexpected error occurred");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await saveTransaction(true);
   };
 
   const symbol = "₹";
@@ -166,6 +183,12 @@ export default function AddTransactionPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {successMessage && (
+          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm">
+            {successMessage}
+          </div>
+        )}
+
         {error && (
           <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
             {error}
@@ -395,20 +418,35 @@ export default function AddTransactionPage() {
         </div>
 
         {/* Sticky Save Button */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold text-base shadow-xl shadow-blue-500/25 flex items-center justify-center gap-2 transition active:scale-98 disabled:opacity-50 touch-target"
-        >
-          {loading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <>
-              <Check className="w-5 h-5" />
-              <span>Save Transaction</span>
-            </>
-          )}
-        </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold text-base shadow-xl shadow-blue-500/25 flex items-center justify-center gap-2 transition active:scale-98 disabled:opacity-50 touch-target"
+          >
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                <Check className="w-5 h-5" />
+                <span>Save & Next</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => void saveTransaction(false)}
+            className="w-full py-4 px-6 rounded-2xl bg-[#141A24] border border-[#263145] text-white font-bold text-base hover:bg-[#1C2433] flex items-center justify-center gap-2 transition active:scale-98 disabled:opacity-50 touch-target"
+          >
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <span>Save & View</span>
+            )}
+          </button>
+        </div>
       </form>
     </div>
   );
