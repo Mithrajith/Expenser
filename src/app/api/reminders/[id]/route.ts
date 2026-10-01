@@ -19,32 +19,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     const db = await getDb();
     const userObjectId = new ObjectId(session.id);
-    const timeZone = parsed.data.timeZone?.trim() || "";
-
-    const updateFields: Record<string, unknown> = {
-      title: parsed.data.title.trim(),
-      message: parsed.data.message.trim(),
-      time: parsed.data.time.trim(),
-      repeat: parsed.data.repeat,
-      enabled: parsed.data.enabled,
-      updatedAt: new Date(),
-    };
-    if (timeZone) {
-      updateFields.timeZone = timeZone;
-    }
 
     const result = await db.collection("reminders").findOneAndUpdate(
       { _id: reminderId, userId: userObjectId },
-      { $set: updateFields },
+      {
+        $set: {
+          title: parsed.data.title.trim(),
+          message: parsed.data.message.trim(),
+          time: parsed.data.time.trim(),
+          repeat: parsed.data.repeat,
+          enabled: parsed.data.enabled,
+        },
+      },
       { returnDocument: "after" }
     );
-
-    if (timeZone) {
-      await db.collection("users").updateOne(
-        { _id: userObjectId },
-        { $set: { timeZone } }
-      );
-    }
 
     if (!result) return NextResponse.json({ error: "Reminder not found" }, { status: 404 });
 

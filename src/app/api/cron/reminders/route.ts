@@ -49,11 +49,7 @@ export async function GET(req: Request) {
       continue;
     }
 
-    const timeZone =
-      (reminder as unknown as { timeZone?: string }).timeZone ||
-      (user.timeZone as string) ||
-      Intl.DateTimeFormat().resolvedOptions().timeZone ||
-      "UTC";
+    const timeZone = user.timeZone || "UTC";
     const occurrence = getReminderOccurrence(
       reminder as unknown as Pick<import("@/lib/reminders").ReminderDoc, "repeat" | "time">,
       timeZone,

@@ -8,13 +8,7 @@ const SECRET_KEY = new TextEncoder().encode(
 
 const SESSION_COOKIE_NAME = "moneytrack_session";
 
-const publicPaths = [
-  "/login",
-  "/register",
-  "/api/auth/login",
-  "/api/auth/register",
-  "/api/cron/reminders",
-];
+const publicPaths = ["/login", "/register", "/api/auth/login", "/api/auth/register"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
