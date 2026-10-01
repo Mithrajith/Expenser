@@ -33,15 +33,30 @@ export async function POST(req: Request) {
 
     const db = await getDb();
     const userObjectId = new ObjectId(session.id);
+    const timeZone = parsed.data.timeZone?.trim() || "";
 
-    const result = await db.collection("reminders").insertOne({
+    const reminderDoc: Record<string, unknown> = {
       userId: userObjectId,
       title: parsed.data.title.trim(),
       message: parsed.data.message.trim(),
       time: parsed.data.time.trim(),
       repeat: parsed.data.repeat,
       enabled: parsed.data.enabled,
-    });
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    if (timeZone) {
+      reminderDoc.timeZone = timeZone;
+    }
+
+    const result = await db.collection("reminders").insertOne(reminderDoc);
+
+    if (timeZone) {
+      await db.collection("users").updateOne(
+        { _id: userObjectId },
+        { $set: { timeZone } }
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -53,6 +68,7 @@ export async function POST(req: Request) {
         time: parsed.data.time.trim(),
         repeat: parsed.data.repeat,
         enabled: parsed.data.enabled,
+        timeZone: timeZone || undefined,
       },
     });
   } catch (error) {

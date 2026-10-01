@@ -50,6 +50,7 @@ export const ReminderSchema = z.object({
   repeat: z.enum(["once", "daily", "weekly", "monthly"]),
   time: z.string().min(1, "Reminder time is required"),
   enabled: z.boolean().default(true),
+  timeZone: z.string().optional(),
 });
 
 export const SettingsSchema = z.object({

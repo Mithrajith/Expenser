@@ -59,6 +59,14 @@ export default function RemindersPage() {
   const weekdayOptions = useMemo(() => getWeekdayOptions(), []);
   const monthDayOptions = useMemo(() => getMonthDayOptions(), []);
 
+  const clientTimeZone = useMemo(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    } catch {
+      return "UTC";
+    }
+  }, []);
+
   const loadReminders = async () => {
     try {
       setLoading(true);
@@ -75,7 +83,14 @@ export default function RemindersPage() {
 
   useEffect(() => {
     loadReminders();
-  }, []);
+    if (clientTimeZone) {
+      fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ timeZone: clientTimeZone }),
+      }).catch(() => {});
+    }
+  }, [clientTimeZone]);
 
   const resetForm = () => {
     setEditingId(null);
@@ -127,6 +142,7 @@ export default function RemindersPage() {
         time: reminderTime,
         repeat: form.repeat,
         enabled: form.enabled,
+        timeZone: clientTimeZone,
       };
 
       const res = await fetch(editingId ? `/api/reminders/${editingId}` : "/api/reminders", {

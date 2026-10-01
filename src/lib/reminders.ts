@@ -10,6 +10,7 @@ export type ReminderDoc = {
   time: string;
   repeat: ReminderRepeat;
   enabled: boolean;
+  timeZone?: string;
   /** ISO timestamp of the last successfully sent email */
   last_sent_at?: Date;
   created_at?: Date;
