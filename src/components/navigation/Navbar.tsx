@@ -46,7 +46,7 @@ export const Navbar = () => {
     { label: "Dashboard", href: "/dashboard", icon: Home },
     { label: "Transactions", href: "/transactions", icon: ReceiptText },
     { label: "Analytics", href: "/analytics", icon: BarChart3 },
-    { label: "Reminders", href: "/reminders", icon: Bell },
+    // { label: "Reminders", href: "/reminders", icon: Bell },
     { label: "Accounts", href: "/accounts", icon: Wallet },
     { label: "Categories", href: "/categories", icon: Tags },
     { label: "Import / Export", href: "/import-export", icon: FileSpreadsheet },
