@@ -15,6 +15,7 @@ import {
   Settings,
   LogOut,
   X,
+  Bell,
 } from "lucide-react";
 
 export const Navbar = () => {
@@ -45,6 +46,7 @@ export const Navbar = () => {
     { label: "Dashboard", href: "/dashboard", icon: Home },
     { label: "Transactions", href: "/transactions", icon: ReceiptText },
     { label: "Analytics", href: "/analytics", icon: BarChart3 },
+    { label: "Reminders", href: "/reminders", icon: Bell },
     { label: "Accounts", href: "/accounts", icon: Wallet },
     { label: "Categories", href: "/categories", icon: Tags },
     { label: "Import / Export", href: "/import-export", icon: FileSpreadsheet },
@@ -195,6 +197,14 @@ export const Navbar = () => {
               >
                 <FileSpreadsheet className="w-6 h-6 text-purple-400" />
                 <span className="text-sm font-medium text-white">Import / Export</span>
+              </Link>
+              <Link
+                href="/reminders"
+                onClick={() => setShowMoreMenu(false)}
+                className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-[#1C2433] border border-[#263145] hover:border-blue-500/40 text-center"
+              >
+                <Bell className="w-6 h-6 text-cyan-400" />
+                <span className="text-sm font-medium text-white">Reminders</span>
               </Link>
               <Link
                 href="/settings"

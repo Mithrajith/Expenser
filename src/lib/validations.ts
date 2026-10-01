@@ -44,6 +44,14 @@ export const CategorySchema = z.object({
   subcategories: z.array(z.string()).default([]),
 });
 
+export const ReminderSchema = z.object({
+  title: z.string().min(1, "Reminder title is required"),
+  message: z.string().min(1, "Reminder message is required"),
+  repeat: z.enum(["once", "daily", "weekly", "monthly"]),
+  time: z.string().min(1, "Reminder time is required"),
+  enabled: z.boolean().default(true),
+});
+
 export const SettingsSchema = z.object({
   name: z.string().min(2),
   baseCurrency: z.string(),

@@ -23,6 +23,13 @@ export async function ensureIndexes(): Promise<void> {
 
     // Categories indexes
     await db.collection("categories").createIndex({ userId: 1 });
+    
+      // Reminder indexes
+      await db.collection("reminders").createIndex({ userId: 1, enabled: 1 });
+      await db.collection("reminders").createIndex({ userId: 1, repeat: 1 });
+      await db.collection("reminder_deliveries").createIndex({ reminderId: 1, occurrenceKey: 1 }, { unique: true });
+      await db.collection("push_subscriptions").createIndex({ endpoint: 1 }, { unique: true });
+      await db.collection("push_subscriptions").createIndex({ userId: 1 });
 
     // Transfers indexes
     await db.collection("transfers").createIndex({ userId: 1, date: -1 });

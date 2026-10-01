@@ -8,6 +8,7 @@ export interface BackupData {
   categories: Record<string, unknown>[];
   transactions: Record<string, unknown>[];
   settings?: Record<string, unknown>;
+    reminders?: Record<string, unknown>[];
 }
 
 export async function exportUserBackup(db: Db, userId: string): Promise<BackupData> {
@@ -17,6 +18,7 @@ export async function exportUserBackup(db: Db, userId: string): Promise<BackupDa
   const categories = await db.collection("categories").find({ userId: userObjectId }).toArray();
   const transactions = await db.collection("transactions").find({ userId: userObjectId }).toArray();
   const user = await db.collection("users").findOne({ _id: userObjectId });
+    const reminders = await db.collection("reminders").find({ userId: userObjectId }).toArray();
 
   return {
     version: "1.0",
@@ -24,6 +26,7 @@ export async function exportUserBackup(db: Db, userId: string): Promise<BackupDa
     accounts,
     categories,
     transactions,
+      reminders,
     settings: {
       baseCurrency: user?.baseCurrency || "INR",
     },
@@ -34,13 +37,18 @@ export async function restoreUserBackup(
   db: Db,
   userId: string,
   backup: BackupData
-): Promise<{ restoredCounts: { accounts: number; categories: number; transactions: number } }> {
+): Promise<{
+  restoredCounts: { accounts: number; categories: number; transactions: number; reminders: number };
+}> {
   const userObjectId = new ObjectId(userId);
 
   // Clear existing user data safely
   await db.collection("transactions").deleteMany({ userId: userObjectId });
   await db.collection("accounts").deleteMany({ userId: userObjectId });
   await db.collection("categories").deleteMany({ userId: userObjectId });
+    await db.collection("reminders").deleteMany({ userId: userObjectId });
+    await db.collection("reminder_deliveries").deleteMany({ userId: userObjectId });
+    await db.collection("push_subscriptions").deleteMany({ userId: userObjectId });
 
   const accountMap = new Map<string, ObjectId>();
   const categoryMap = new Map<string, ObjectId>();
@@ -105,6 +113,19 @@ export async function restoreUserBackup(
       restoredTransactionsCount++;
     }
   }
+  // Restore reminders
+  let restoredRemindersCount = 0;
+  if (backup.reminders && Array.isArray(backup.reminders)) {
+    for (const reminder of backup.reminders) {
+      delete reminder._id;
+      delete reminder.id;
+      await db.collection("reminders").insertOne({
+        ...reminder,
+        userId: userObjectId,
+      });
+      restoredRemindersCount++;
+    }
+  }
 
   // Recalculate balances
   await recalculateAllUserBalances(db, userId);
@@ -114,6 +135,7 @@ export async function restoreUserBackup(
       accounts: restoredAccountsCount,
       categories: restoredCategoriesCount,
       transactions: restoredTransactionsCount,
+      reminders: restoredRemindersCount,
     },
   };
 }

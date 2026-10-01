@@ -25,6 +25,7 @@ export async function PATCH(req: Request) {
       transactionType,
       transactionAccountId,
       transactionCategoryId,
+      timeZone,
     } = body;
 
     const db = await getDb();
@@ -38,6 +39,10 @@ export async function PATCH(req: Request) {
     const updates: Record<string, unknown> = {
       updatedAt: new Date(),
     };
+
+    if (typeof timeZone === "string" && timeZone.trim().length > 0) {
+      updates.timeZone = timeZone.trim();
+    }
 
     let updatedName = currentUser.name;
     let updatedEmail = currentUser.email;
@@ -151,6 +156,7 @@ export async function PATCH(req: Request) {
         transactionType: typeof updates.transactionType === "string" ? updates.transactionType : currentUser.transactionType || "",
         transactionAccountId: typeof updates.transactionAccountId === "string" ? updates.transactionAccountId : currentUser.transactionAccountId || "",
         transactionCategoryId: typeof updates.transactionCategoryId === "string" ? updates.transactionCategoryId : currentUser.transactionCategoryId || "",
+        timeZone: typeof updates.timeZone === "string" ? updates.timeZone : currentUser.timeZone || "",
       },
     });
   } catch (error) {
@@ -189,6 +195,7 @@ export async function GET() {
       transactionType: user.transactionType || "",
       transactionAccountId: user.transactionAccountId || "",
       transactionCategoryId: user.transactionCategoryId || "",
+      timeZone: user.timeZone || "",
       createdAt: user.createdAt,
     },
   });

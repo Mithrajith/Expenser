@@ -97,6 +97,11 @@ MONGODB_DB=moneytrack
 AUTH_SECRET=your-32-character-secret-key-here
 AUTH_URL=http://localhost:3000
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your-vapid-public-key
+VAPID_PUBLIC_KEY=your-vapid-public-key
+VAPID_PRIVATE_KEY=your-vapid-private-key
+VAPID_SUBJECT=mailto:support@example.com
+CRON_SECRET=optional-secret-for-local-cron-testing
 ```
 
 ---

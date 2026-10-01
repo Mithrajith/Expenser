@@ -158,6 +158,35 @@ function buildViewGroups(transactions: Transaction[], tab: "daily" | "calendar" 
 }
 
 export default function TransactionsPage() {
+  return (
+    <React.Suspense fallback={<TransactionsSkeleton />}>
+      <TransactionsView />
+    </React.Suspense>
+  );
+}
+
+function TransactionsSkeleton() {
+  return (
+    <div className="space-y-6" aria-busy="true" aria-live="polite">
+      <div className="flex flex-col gap-3">
+        <div className="h-8 w-64 rounded-xl bg-[#1C2433] animate-pulse" />
+        <div className="h-4 w-80 rounded-xl bg-[#1C2433] animate-pulse" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {Array.from({ length: 4 }).map((_, idx) => (
+          <div key={idx} className="h-24 rounded-3xl bg-[#141A24] border border-[#263145] animate-pulse" />
+        ))}
+      </div>
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, idx) => (
+          <div key={idx} className="h-20 rounded-2xl bg-[#141A24] border border-[#263145] animate-pulse" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TransactionsView() {
   const searchParams = useSearchParams();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -525,24 +554,7 @@ export default function TransactionsPage() {
       </div>
 
       {loading ? (
-        <div className="space-y-6" aria-busy="true" aria-live="polite">
-          <div className="flex flex-col gap-3">
-            <div className="h-8 w-64 rounded-xl bg-[#1C2433] animate-pulse" />
-            <div className="h-4 w-80 rounded-xl bg-[#1C2433] animate-pulse" />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Array.from({ length: 4 }).map((_, idx) => (
-              <div key={idx} className="h-24 rounded-3xl bg-[#141A24] border border-[#263145] animate-pulse" />
-            ))}
-          </div>
-
-          <div className="space-y-3">
-            {Array.from({ length: 5 }).map((_, idx) => (
-              <div key={idx} className="h-20 rounded-2xl bg-[#141A24] border border-[#263145] animate-pulse" />
-            ))}
-          </div>
-        </div>
+        <TransactionsSkeleton />
       ) : viewGroups.length === 0 ? (
         <div className="text-center py-16 bg-[#141A24] border border-[#263145] rounded-3xl p-6 space-y-3">
           <CalendarIcon className="w-10 h-10 text-gray-600 mx-auto" />

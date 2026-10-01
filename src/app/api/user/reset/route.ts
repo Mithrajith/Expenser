@@ -17,6 +17,9 @@ export async function POST() {
     await db.collection("transactions").deleteMany({ userId: userObjectId });
     await db.collection("accounts").deleteMany({ userId: userObjectId });
     await db.collection("categories").deleteMany({ userId: userObjectId });
+    await db.collection("reminders").deleteMany({ userId: userObjectId });
+    await db.collection("reminder_deliveries").deleteMany({ userId: userObjectId });
+    await db.collection("push_subscriptions").deleteMany({ userId: userObjectId });
 
     // Seed clean default categories and accounts
     await seedUserData(db, session.id);

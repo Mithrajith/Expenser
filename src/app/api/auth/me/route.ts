@@ -25,6 +25,7 @@ export async function GET() {
       name: user.name,
       email: user.email,
       baseCurrency: user.baseCurrency || "INR",
+      timeZone: user.timeZone || "",
       createdAt: user.createdAt,
     },
   });
