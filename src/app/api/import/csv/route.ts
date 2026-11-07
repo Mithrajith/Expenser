@@ -22,18 +22,22 @@ export async function POST(req: Request) {
     const userObjectId = new ObjectId(session.id);
 
     const accounts = await db.collection("accounts").find({ userId: userObjectId }).toArray();
+    const categories = await db.collection("categories").find({ userId: userObjectId }).toArray();
+
     let defaultAccId = accounts[0]?._id;
     if (!defaultAccId) {
       const newAcc = await db.collection("accounts").insertOne({
         userId: userObjectId,
-        name: "CSV Account",
+        name: "Default Account",
         type: "BANK",
         currency: "INR",
         openingBalance: 0,
         currentBalance: 0,
         createdAt: new Date(),
+        updatedAt: new Date(),
       });
       defaultAccId = newAcc.insertedId;
+      accounts.push({ _id: defaultAccId, name: "Default Account" } as any);
     }
 
     let importedCount = 0;
@@ -46,12 +50,55 @@ export async function POST(req: Request) {
       const date = row.Date || row.date || new Date().toISOString().substring(0, 10);
       const type = (row.Type || row.type || "EXPENSE").toUpperCase();
 
+      // Auto-resolve or create account if new
+      const accName = (row.Account || row.account || row.Bank || row.bank || "").trim();
+      let targetAccountId = defaultAccId;
+      if (accName) {
+        let accMatch = accounts.find((a) => a.name.toLowerCase() === accName.toLowerCase());
+        if (!accMatch) {
+          const insAcc = await db.collection("accounts").insertOne({
+            userId: userObjectId,
+            name: accName,
+            type: "BANK",
+            currency: "INR",
+            openingBalance: 0,
+            currentBalance: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+          accMatch = { _id: insAcc.insertedId, name: accName } as any;
+          accounts.push(accMatch);
+        }
+        targetAccountId = accMatch._id;
+      }
+
+      // Auto-resolve or create category if new
+      const catName = (row.Category || row.category || "").trim();
+      let targetCatId: ObjectId | null = null;
+      if (catName) {
+        let catMatch = categories.find((c) => c.name.toLowerCase() === catName.toLowerCase());
+        if (!catMatch) {
+          const insCat = await db.collection("categories").insertOne({
+            userId: userObjectId,
+            name: catName,
+            type: type === "INCOME" ? "INCOME" : "EXPENSE",
+            subcategories: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+          catMatch = { _id: insCat.insertedId, name: catName } as any;
+          categories.push(catMatch);
+        }
+        targetCatId = catMatch._id;
+      }
+
       await db.collection("transactions").insertOne({
         userId: userObjectId,
         type,
         amount,
         currency: row.Currency || row.currency || "INR",
-        accountId: defaultAccId,
+        accountId: targetAccountId,
+        categoryId: targetCatId,
         subcategoryId: row.Subcategory || row.subcategory || "",
         title,
         description: row.Description || row.description || "",
