@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     }
 
     const userId = user._id.toString();
-    await createSession({
+    const token = await createSession({
       id: userId,
       name: user.name,
       email: user.email,
@@ -46,6 +46,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
+      token,
+      accessToken: token,
       user: { id: userId, name: user.name, email: user.email, currency: user.baseCurrency || "INR" },
     });
   } catch (error: unknown) {

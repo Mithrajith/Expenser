@@ -200,3 +200,34 @@ export async function GET() {
     },
   });
 }
+
+export async function DELETE() {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const db = await getDb();
+    const userObjectId = new ObjectId(session.id);
+
+    // Delete all user related data across collections
+    await db.collection("transactions").deleteMany({ userId: userObjectId });
+    await db.collection("accounts").deleteMany({ userId: userObjectId });
+    await db.collection("categories").deleteMany({ userId: userObjectId });
+    await db.collection("budgets").deleteMany({ userId: userObjectId });
+    await db.collection("savings_goals").deleteMany({ userId: userObjectId });
+    await db.collection("reminders").deleteMany({ userId: userObjectId });
+    await db.collection("mobile_devices").deleteMany({ userId: userObjectId });
+    await db.collection("mobile_synced_events").deleteMany({ userId: userObjectId });
+    await db.collection("users").deleteOne({ _id: userObjectId });
+
+    return NextResponse.json({
+      success: true,
+      message: "User account and all associated data permanently deleted.",
+    });
+  } catch (error) {
+    console.error("Delete user account error:", error);
+    return NextResponse.json({ error: "Failed to delete account" }, { status: 500 });
+  }
+}

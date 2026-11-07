@@ -48,8 +48,8 @@ export async function POST(req: Request) {
     // Automatically seed default categories and accounts
     await seedUserData(db, userId);
 
-    // Create session cookie
-    await createSession({
+    // Create session cookie and token
+    const token = await createSession({
       id: userId,
       name,
       email: email.toLowerCase(),
@@ -58,6 +58,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
+      token,
+      accessToken: token,
       user: { id: userId, name, email: email.toLowerCase(), currency: baseCurrency || "INR" },
     });
   } catch (error: unknown) {

@@ -58,3 +58,23 @@ export const SettingsSchema = z.object({
   baseCurrency: z.string(),
   appearance: z.enum(["light", "dark", "system"]).default("dark"),
 });
+
+export const BudgetSchema = z.object({
+  name: z.string().min(1, "Budget name is required"),
+  amount: z.number().positive("Amount must be greater than 0"),
+  period: z.enum(["WEEKLY", "MONTHLY", "YEARLY"]).default("MONTHLY"),
+  categoryId: z.string().optional().nullable(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  alertThreshold: z.number().min(0).max(100).default(80),
+});
+
+export const GoalSchema = z.object({
+  title: z.string().min(1, "Goal title is required"),
+  targetAmount: z.number().positive("Target amount must be greater than 0"),
+  currentAmount: z.number().min(0).default(0),
+  targetDate: z.string().optional(),
+  category: z.string().optional(),
+  notes: z.string().optional().default(""),
+});
+
