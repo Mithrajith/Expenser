@@ -8,7 +8,15 @@ const SECRET_KEY = new TextEncoder().encode(
 
 const SESSION_COOKIE_NAME = "moneytrack_session";
 
-const publicPaths = ["/login", "/register", "/api/auth/login", "/api/auth/register"];
+const publicPaths = [
+  "/login",
+  "/register",
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/forgot-password",
+  "/api/v1/mobile/auth/pair",
+  "/api/v1/mobile/auth/refresh",
+];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -24,7 +32,16 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  let token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+
+  // Check Authorization Bearer header for mobile clients
+  if (!token) {
+    const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7).trim();
+    }
+  }
+
   let isAuthenticated = false;
 
   if (token) {
@@ -46,11 +63,11 @@ export async function proxy(request: NextRequest) {
   }
 
   // If trying to access public path while logged in -> redirect to dashboard
-  if (publicPaths.includes(pathname) && isAuthenticated) {
+  if (publicPaths.includes(pathname) && isAuthenticated && !pathname.startsWith("/api/")) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // If trying to access protected path while NOT logged in -> redirect to login
+  // If trying to access protected web path while NOT logged in -> redirect to login
   const isPublic = publicPaths.some((path) => pathname.startsWith(path));
   if (!isPublic && !isAuthenticated && !pathname.startsWith("/api/")) {
     const loginUrl = new URL("/login", request.url);
