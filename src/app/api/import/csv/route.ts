@@ -66,10 +66,11 @@ export async function POST(req: Request) {
             createdAt: new Date(),
             updatedAt: new Date(),
           });
-          accMatch = { _id: insAcc.insertedId, name: accName } as any;
-          accounts.push(accMatch);
+          const newAcc = { _id: insAcc.insertedId, name: accName } as any;
+          accounts.push(newAcc);
+          accMatch = newAcc;
         }
-        targetAccountId = accMatch._id;
+        targetAccountId = accMatch!._id;
       }
 
       // Auto-resolve or create category if new
@@ -86,10 +87,11 @@ export async function POST(req: Request) {
             createdAt: new Date(),
             updatedAt: new Date(),
           });
-          catMatch = { _id: insCat.insertedId, name: catName } as any;
-          categories.push(catMatch);
+          const newCat = { _id: insCat.insertedId, name: catName } as any;
+          categories.push(newCat);
+          catMatch = newCat;
         }
-        targetCatId = catMatch._id;
+        targetCatId = catMatch!._id;
       }
 
       await db.collection("transactions").insertOne({
